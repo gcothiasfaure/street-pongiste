@@ -1,0 +1,60 @@
+name: Deploy api on push
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+
+jobs:
+  deploy-api-to-vps:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v2
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push street-pongiste-api-app Docker image into Docker Hub
+        run: |
+          cd api/app
+          docker build -t gaspardcothiasfaure/street-pongiste-api-app:1.0 .
+          docker push gaspardcothiasfaure/street-pongiste-api-app:1.0
+
+      - name: Copy files into VPS (1)
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: "api/app"
+          target: "/home/debian/lgna-sandbox/street-pongiste-api/app"
+          rm: true
+          strip_components: 2
+
+      - name: Copy files into VPS (2)
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          source: "api/docker-compose.yml"
+          target: "/home/debian/lgna-sandbox/street-pongiste-api"
+          overwrite: true
+          strip_components: 1
+
+      - name: Pull street-pongiste-api-app Docker image and launch docker-compose.yml
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          password: ${{ secrets.VPS_PASSWORD }}
+          script: |
+            docker pull gaspardcothiasfaure/street-pongiste-api-app:1.0
+            docker-compose -f /home/debian/lgna-sandbox/street-pongiste-api/docker-compose.yml --env-file /home/debian/lgna-sandbox/street-pongiste-api/.env up -d --build

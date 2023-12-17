@@ -1,0 +1,41 @@
+version: "3.7"
+
+networks:
+  street-pongiste-api:
+    name: street-pongiste-api
+  traefik-lgna-sandbox:
+    name: traefik-lgna-sandbox
+
+services:
+  street-pongiste-api-app:
+    image: gaspardcothiasfaure/street-pongiste-api-app:1.0
+    container_name: street-pongiste-api-app
+    restart: always
+    environment:
+      - MONGODB_CONNSTRING=${MONGODB_CONNSTRING}
+    networks:
+      - street-pongiste-api
+      - traefik-lgna-sandbox
+    depends_on:
+      - street-pongiste-api-db
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.street-pongiste-api.rule=Host(`api.street-pongiste.lgna.fr`)"
+      - "traefik.http.routers.street-pongiste-api.entrypoints=websecure"
+      - "traefik.http.routers.street-pongiste-api.tls.certresolver=street-pongiste-api-resolver"
+
+  street-pongiste-api-db:
+    image: mongo:7.0.4
+    restart: always
+    container_name: street-pongiste-api-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./db/mongodb-volume:/data/db
+      - ./db/init-mongodb.js:/docker-entrypoint-initdb.d/init-mongodb.js
+    networks:
+      - street-pongiste-api
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
