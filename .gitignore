@@ -16,7 +16,8 @@ web-build/
 __pycache__
 init-mongodb.js
 .env
-initial-osm-data-in-db/output/
+initial-osm-data-in-db/raw-data-france.geojson
+initial-osm-data-in-db/tags-data-description.json
 
 # deployment
 *.exe

@@ -47,41 +47,47 @@ def transform_gdf_to_points(gdf):
 def generate_place_from_adress(coordinate_list):
     reverse_geocoding_request_address = "https://api.mapbox.com/geocoding/v5/mapbox.places/"+str(coordinate_list[0])+","+str(coordinate_list[1])+".json?country=fr&language=fr&types=address&access_token="+MAPBOX_API_TOKEN
     reverse_geocoding_data_address = requests.get(reverse_geocoding_request_address).json()
-    if len(reverse_geocoding_data_address["features"]) == 0:
+    if "features" not in reverse_geocoding_data_address.keys():
         return {}
     else:
-        place = {}
-        place["type"] = "address"
-        place["name"] = reverse_geocoding_data_address["features"][0]["text_fr"]
-        place["address"] = reverse_geocoding_data_address["features"][0]["place_name_fr"]
-        return place
+        if len(reverse_geocoding_data_address["features"]) == 0:
+            return {}
+        else:
+            place = {}
+            place["type"] = "address"
+            place["name"] = reverse_geocoding_data_address["features"][0]["text_fr"]
+            place["address"] = reverse_geocoding_data_address["features"][0]["place_name_fr"]
+            return place
 
 def generate_place_for_table_coordinates(coordinate_list):
 
     reverse_geocoding_request_string = "https://api.mapbox.com/geocoding/v5/mapbox.places/"+str(coordinate_list[0])+","+str(coordinate_list[1])+".json?country=fr&language=fr&types=poi&access_token="+MAPBOX_API_TOKEN
     reverse_geocoding_data = requests.get(reverse_geocoding_request_string).json()
 
-    features = reverse_geocoding_data["features"]
-
-    if len(features) == 0:
-        return generate_place_from_adress(coordinate_list)
-
-    features_interesting = []
-    for feature in features:
-        if "category" in feature["properties"].keys():
-            if any(item in feature["properties"]["category"] for item in MAPBOX_TABLE_TENNIS_LOCATION_TAGS):
-                features_interesting.append(feature)
-
-    # features_interesting = [feature for feature in features if any(item in feature["properties"]["category"] for item in MAPBOX_TABLE_TENNIS_LOCATION_TAGS)]
-
-    if len(features_interesting) == 0:
-        return generate_place_from_adress(coordinate_list)
+    if "features" not in reverse_geocoding_data.keys():
+        return {}
     else:
-        place = {}
-        place["type"] = "poi"
-        place["name"] = features_interesting[0]["text_fr"]
-        place["address"] = features_interesting[0]["place_name_fr"]
-        return place
+        features = reverse_geocoding_data["features"]
+
+        if len(features) == 0:
+            return generate_place_from_adress(coordinate_list)
+
+        features_interesting = []
+        for feature in features:
+            if "category" in feature["properties"].keys():
+                if any(item in feature["properties"]["category"] for item in MAPBOX_TABLE_TENNIS_LOCATION_TAGS):
+                    features_interesting.append(feature)
+
+        # features_interesting = [feature for feature in features if any(item in feature["properties"]["category"] for item in MAPBOX_TABLE_TENNIS_LOCATION_TAGS)]
+
+        if len(features_interesting) == 0:
+            return generate_place_from_adress(coordinate_list)
+        else:
+            place = {}
+            place["type"] = "poi"
+            place["name"] = features_interesting[0]["text_fr"]
+            place["address"] = features_interesting[0]["place_name_fr"]
+            return place
 
 def generate_lit_property_with_tags(tags):
     if "lit" in tags.keys():
@@ -96,11 +102,23 @@ def generate_lit_property_with_tags(tags):
 
 def generate_last_check_date_property_with_tags(tags):
     if all(value in ["check_date","survey:date"] for value in tags.keys()):
-        return min([datetime.strptime(tags["check_date"], "%Y-%m-%d"),datetime.strptime(tags["survey:date"], "%Y-%m-%d")])
+        check_date = tags["check_date"] 
+        if len(check_date) == 4:
+            check_date = check_date+"-01-01"
+        survey_date = tags["survey:date"]
+        if len(survey_date) == 4:
+            survey_date = survey_date+"-01-01"
+        return max([datetime.strptime(check_date, "%Y-%m-%d"),datetime.strptime(survey_date, "%Y-%m-%d")])
     elif "check_date" in tags.keys():
-        return datetime.strptime(tags["check_date"], "%Y-%m-%d")
+        check_date = tags["check_date"] 
+        if len(check_date) == 4:
+            check_date = check_date+"-01-01"
+        return datetime.strptime(check_date, "%Y-%m-%d")
     elif "survey:date" in tags.keys():
-        return datetime.strptime(tags["survey:date"], "%Y-%m-%d")
+        survey_date = tags["survey:date"]
+        if len(survey_date) == 4:
+            survey_date = survey_date+"-01-01"
+        return datetime.strptime(survey_date, "%Y-%m-%d")
     else:
         return None
 
@@ -214,6 +232,7 @@ def save_to_mongo(data):
     return result
 
 if __name__ == "__main__":
+    # Dernière MAJ des données : 08/07/2024
     initial_data_gdf = get_initial_data("request")
     initial_data_gdf = transform_gdf_to_points(initial_data_gdf)
     initial_data_dict = json.loads(initial_data_gdf.to_json())

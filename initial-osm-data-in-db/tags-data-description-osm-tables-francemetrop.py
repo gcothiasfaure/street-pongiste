@@ -34,15 +34,18 @@ for feature in raw_data['features']:
     reverse_geocoding_request_address = "https://api.mapbox.com/geocoding/v5/mapbox.places/"+str(feature['geometry']['coordinates'][0])+","+str(feature['geometry']['coordinates'][1])+".json?country=fr&language=fr&types=poi&limit=5&access_token="+MAPBOX_API_TOKEN
     reverse_geocoding_data_address = requests.get(reverse_geocoding_request_address).json()
 
-    if len(reverse_geocoding_data_address['features']) == 0:
+    if "features" not in reverse_geocoding_data_address.keys():
         empty_poi.append("no poi")
     else:
-        for reverse_geocoding_feature in reverse_geocoding_data_address['features']:
-            if 'category' in reverse_geocoding_feature['properties'].keys():
-                for i in reverse_geocoding_feature['properties']['category'].strip(' ').split(','):
-                    categories.append(i.strip(' '))
-            else:
-                no_categorie.append("no category in poi")
+        if len(reverse_geocoding_data_address['features']) == 0:
+            empty_poi.append("no poi")
+        else:
+            for reverse_geocoding_feature in reverse_geocoding_data_address['features']:
+                if 'category' in reverse_geocoding_feature['properties'].keys():
+                    for i in reverse_geocoding_feature['properties']['category'].strip(' ').split(','):
+                        categories.append(i.strip(' '))
+                else:
+                    no_categorie.append("no category in poi")
 
     tags = feature['properties']['tags']
 
