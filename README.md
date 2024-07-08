@@ -52,9 +52,10 @@ Chaîne de connexion à la bdd MongoDB : **MONGODB_CONNSTRING** :
 
 #### Définir les variables d'environnement :
 
-Chaîne de connexion à la bdd MongoDB : **MONGODB_CONNSTRING**.
+Chaîne de connexion à la bdd MongoDB : **MONGODB_CONNSTRING** et chaîne de connexion à l'API Mapbox : **MAPBOX_API_TOKEN**.
 
 `$env:MONGODB_CONNSTRING="mongodbconnstring"` avec _mongodbconnstring_ la chaîne de connexion à la bdd
+`$env:MAPBOX_API_TOKEN="mapboxapitoken"` avec _mapboxapitoken_ la chaîne de connexion à la bdd
 
 #### Lancer les scripts :
 
